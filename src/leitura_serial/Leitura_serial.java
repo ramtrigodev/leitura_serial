@@ -10,21 +10,40 @@ import gnu.io.SerialPort;
 import gnu.io.SerialPortEvent;
 import gnu.io.SerialPortEventListener;
 
+import javax.swing.*;
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.Enumeration;
 
-public class Leitura_serial implements SerialPortEventListener {
-SerialPort serialPort;
+public class Leitura_serial extends JFrame implements SerialPortEventListener {
+
+    SerialPort serialPort;
     private BufferedReader input;
     private OutputStream output;
+    private JTextArea textArea;
     private static final String PORT_NAMES[] = {
-       
         "COM3", // Windows
     };
     private static final int TIME_OUT = 2000;
     private static final int DATA_RATE = 9600;
+
+    public Leitura_serial() {
+        super("Leitura Serial");
+        initUI();
+    }
+
+    private void initUI() {
+        setLayout(new BorderLayout());
+        textArea = new JTextArea();
+        textArea.setEditable(false);
+        add(new JScrollPane(textArea), BorderLayout.CENTER);
+
+        setSize(400, 300);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+    }
 
     public void initialize() {
         CommPortIdentifier portId = null;
@@ -41,7 +60,7 @@ SerialPort serialPort;
         }
 
         if (portId == null) {
-            System.out.println("Não foi possível encontrar a porta COM.");
+            JOptionPane.showMessageDialog(this, "Não foi possível encontrar a porta COM.", "Erro", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
@@ -55,7 +74,7 @@ SerialPort serialPort;
             serialPort.addEventListener(this);
             serialPort.notifyOnDataAvailable(true);
         } catch (Exception e) {
-            System.err.println(e.toString());
+            JOptionPane.showMessageDialog(this, e.toString(), "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -70,26 +89,29 @@ SerialPort serialPort;
         if (oEvent.getEventType() == SerialPortEvent.DATA_AVAILABLE) {
             try {
                 String inputLine = input.readLine();
-                System.out.println(inputLine);
+                textArea.append(inputLine + "\n");
             } catch (Exception e) {
-                System.err.println(e.toString());
+                JOptionPane.showMessageDialog(this, e.toString(), "Erro", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
 
-    public static void main(String[] args) throws Exception {
-        Leitura_serial main = new Leitura_serial();
-        main.initialize();
-        System.out.println("Iniciando leitura da porta serial");
-        Thread t = new Thread() {
-            public void run() {
+    public static void main(String[] args) {
+        EventQueue.invokeLater(() -> {
+            Leitura_serial mainFrame = new Leitura_serial();
+            mainFrame.setVisible(true);
+            mainFrame.initialize();
+            System.out.println("Iniciando leitura da porta serial");
+
+            Thread t = new Thread(() -> {
                 try {
                     Thread.sleep(1000000);
                 } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
                 }
-            }
-        };
-        t.start();
-        System.out.println("Thread inicializada.");
+            });
+            t.start();
+            System.out.println("Thread inicializada.");
+        });
     }
 }
